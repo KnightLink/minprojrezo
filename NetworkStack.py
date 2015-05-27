@@ -23,7 +23,7 @@ class NetworkStack(object):
             new_header = Header(string[0],string[1],string[2:3],string[4:7],string[8:9],string[10:12])
             return new_header
 
-    class Paquet() :
+    class Paquet :
 
         def __init__(self, header, data) :
             self.package=header.toString()+str(data)
