@@ -23,23 +23,32 @@ class NetworkStack(object):
             new_header = Header(string[0],string[1],string[2:3],string[4:7],string[8:9],string[10:12])
             return new_header
 
+    class SousPaquet :
+        def __init__(self, header, data) :
+            self.header=header
+            self.data=data
+
+        def to_souspaquet_parse(header_string, data_string):
+            header=Header.to_header_parse(header_string)
+            return SousPaquet(header,data_string)
+
+        def to_string_header_parse(self):
+            return header.to_string_parse
+
     class Paquet :
 
-        def __init__(self, header, data) :
-            self.header_list=[header]
-            self.data_list=[data]
-            self.packet=header.toString()+str(data)
-
-        def _append_header(self, header) :
-            end_of_headers = int(self.package[4:8])
-            self.packet=self.packet[:end_of_headers]+header.toString()+self.packet[end_of_headers:]
-            
-        def append_new_package(self, header, data) :
-            self.append_header(header)
-            self.packet=self.packet+data
+        def __init__(self) :
+            self.sous_paquets=[]
+            self.paquet_string="";
 
         def to_paquet_parse(string) :
+            packet=Paquet()
+            # exploration du string puis appels de to_souspaquet_parse à la suite, puis append de tous les sous-paquets à la suite dans le tableau sous_paquets
             return 1
+
+        def to_string_parse(self) :
+            # appelle to_string_header parse de tous les paquets, puis concatène tous les data pour créer un string (datagram)
+            return ""
             
 
 
@@ -78,6 +87,9 @@ class NetworkStack(object):
     # should generally agree with one layer difference (i.e. here we treat the applicationPort, an identifier that sais which application
     # is asked to handle the traffic
     def layer4_incomingPDU(self, source, pdu):
+
+        #je dirais qu'ici on créer le sous paquet a renvoyer (son header et data, mais sans l'intégrer au paquet actuel
+        
         print("%s Layer4_in: Received (%s) from %s " % (self.__ownIdentifier,pdu, source))
         self.application_layer_incomingPDU(source,10,pdu)
 
@@ -91,6 +103,10 @@ class NetworkStack(object):
     # The current situation is that in this layer, the network stack takes the decision to forcibly keep the packet because it thinkgs that it is destined to this computer
     # It also authorizes immediately that a new packet can be put onto the network.
     def layer3_incomingPDU(self, interface, pdu):
+        
+        #je dirais ici on regarde quel type de paquet on a recu et on décide quel réponse apporter ou qqch du genre
+        # 1) On isole les paquets pour nous
+
         print("%s Layer3_in: Received (%s) on interface %d: " % (self.__ownIdentifier, pdu, interface))
         # Say, we treat destination here
         # Maybe we can give away one packet if we received one?
@@ -117,6 +133,13 @@ class NetworkStack(object):
 
     # Please adapt
     def layer2_incomingPDU(self, interface, pdu):
+        # Coup d'oeil aux headers
+        # 1) Parsing du paquet (à faire : paquet_parse)
+
+        # 2) Boucle qui regarde la liste des headers : boolean à vrai si un des mess est pour nous
+
+        # 3) Si on n'a pas de message pour nous on passe direct a 2_outgoing, sinon on passe a 3_in pour traiter le paquet plus en détail
+        
         #print("%s Layer2: Received (%s) on Interface %d:  " % (self.__ownIdentifier, pdu, interface))
         if interface == 0 : # same ring
             # Forward in 50% of the cases
