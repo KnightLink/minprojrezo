@@ -1,0 +1,11 @@
+Attention :
+
+Les messages des threads ne s'affichent pas "dans l'ordre",
+il faut reconstituer l'ordre.
+
+
+Phys -> Couche 2 in -> Couche 3 in -> Couche 4 in -> Affichage
+            |
+          (tirage ? => "court-circuit")
+            |
+Phys <- Couche 2 out <- Couche 3 out <- Couche 4 out <- Série de messages à envoyer (Token, 0, 1, 2, ... 10000)
