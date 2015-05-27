@@ -6,6 +6,8 @@ import random
 
 class NetworkStack(object):
 
+    TAILLE_HEADER = 13
+
     class Header :
 
         def __init__(self, vers, type, dest, debut_mess, src, taille) :
@@ -39,8 +41,13 @@ class NetworkStack(object):
 
         def __init__(self) :
             self.sous_paquets=[]
-            self.paquet_string="";
 
+        def add_souspaquet(self, souspaquet):
+            sous_paquets.append(souspaquet)
+
+        def get_nb_paquets(self) :
+            return self.sous_paquets[0].debut_mess/TAILLE_HEADER
+        
         def to_paquet_parse(string) :
             packet=Paquet()
             # exploration du string puis appels de to_souspaquet_parse à la suite, puis append de tous les sous-paquets à la suite dans le tableau sous_paquets
@@ -48,6 +55,7 @@ class NetworkStack(object):
 
         def to_string_parse(self) :
             # appelle to_string_header parse de tous les paquets, puis concatène tous les data pour créer un string (datagram)
+            # ne pas oublier de mettre à jour les pointeurs vers data avant de concaténer
             return ""
             
 
@@ -60,6 +68,10 @@ class NetworkStack(object):
         self.layer3_numberOfDataPacketsEmpty=0
         self.layer3_outputBlockingCondition=threading.Condition()
         self.layer3_outputDoneCondition=threading.Condition()
+        # stockage des headers, souspaquets, list à traiter. Sont utilisés lors du traitement d'un paquet et sont vidées car c'est envoyé.
+        self.headerlist=[]
+        self.souspaquetlist=[]
+        self.paquetlis[]
 
     def leaveNetwork(self):
         self.__physicalLayer.API_leave()
@@ -87,8 +99,8 @@ class NetworkStack(object):
     # should generally agree with one layer difference (i.e. here we treat the applicationPort, an identifier that sais which application
     # is asked to handle the traffic
     def layer4_incomingPDU(self, source, pdu):
-
-        #je dirais qu'ici on créer le sous paquet a renvoyer (son header et data, mais sans l'intégrer au paquet actuel
+        # traitement data des sous-paquets reçus
+        # suppression des paquets lus / paquets dont nous sommes la destination
         
         print("%s Layer4_in: Received (%s) from %s " % (self.__ownIdentifier,pdu, source))
         self.application_layer_incomingPDU(source,10,pdu)
@@ -96,6 +108,8 @@ class NetworkStack(object):
 
     # Please adapt
     def layer4_outgoingPDU(self, destination, applicationPort, pdu):
+        # Création du header et des données
+        
         print("%s Layer4_out: Sending message (%s) to %s " % (self.__ownIdentifier, pdu, destination))
         self.layer3_outgoingPDU(destination, pdu)
 
@@ -104,8 +118,7 @@ class NetworkStack(object):
     # It also authorizes immediately that a new packet can be put onto the network.
     def layer3_incomingPDU(self, interface, pdu):
         
-        #je dirais ici on regarde quel type de paquet on a recu et on décide quel réponse apporter ou qqch du genre
-        # 1) On isole les paquets pour nous
+        # 1) On isole les paquets pour nous en créant des SousPaquet
 
         print("%s Layer3_in: Received (%s) on interface %d: " % (self.__ownIdentifier, pdu, interface))
         # Say, we treat destination here
@@ -122,6 +135,7 @@ class NetworkStack(object):
 
     # Please adapt
     def layer3_outgoingPDU(self, destination, pdu):
+        # Compilation du paquet sous forme de string
         self.layer3_outputBlockingCondition.acquire()
         self.layer3_outputAvailable=True
         while self.layer3_numberOfDataPacketsEmpty<1:
@@ -135,6 +149,8 @@ class NetworkStack(object):
     def layer2_incomingPDU(self, interface, pdu):
         # Coup d'oeil aux headers
         # 1) Parsing du paquet (à faire : paquet_parse)
+
+        # 1bis) Vérification getnbpaquet : si 0, on forward (layer2_outgoingPDU)
 
         # 2) Boucle qui regarde la liste des headers : boolean à vrai si un des mess est pour nous
 
@@ -155,6 +171,7 @@ class NetworkStack(object):
             pass
 
     def layer2_outgoingPDU(self, interface, pdu):
+        # Envoi du paquet
         print("%s Layer2: Sending out (%s) via interface %d " % (self.__ownIdentifier, pdu, interface))
         self.__physicalLayer.API_sendData(interface, pdu)
 
