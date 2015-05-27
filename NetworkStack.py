@@ -16,25 +16,32 @@ class NetworkStack(object):
             self.src=str(src)
             self.taille=str(taille)
 
-        def toString(self) :
+        def to_string_parse(self) :
             return  self.vers+self.type+self.dest+self.debut_mess+self.src+self.taille+self.data
 
-        def parse(string) :
+        def to_header_parse(string) :
             new_header = Header(string[0],string[1],string[2:3],string[4:7],string[8:9],string[10:12])
             return new_header
 
     class Paquet :
 
         def __init__(self, header, data) :
-            self.package=header.toString()+str(data)
+            self.header_list=[header]
+            self.data_list=[data]
+            self.packet=header.toString()+str(data)
 
         def _append_header(self, header) :
             end_of_headers = int(self.package[4:8])
-            self.package=self.package[:end_of_headers]+header.toString()+self.package[end_of_headers:]
+            self.packet=self.packet[:end_of_headers]+header.toString()+self.packet[end_of_headers:]
             
         def append_new_package(self, header, data) :
             self.append_header(header)
-            self.package=self.package+data
+            self.packet=self.packet+data
+
+        def to_paquet_parse(string) :
+            return 1
+            
+
 
     def __init__(self, masterHost='127.0.0.1', baseport=10000, ownIdentifier='x'):
         self.__applicationList=[]
