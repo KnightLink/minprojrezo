@@ -12,11 +12,13 @@ class NetworkStack(object):
 
         def __init__(self, vers, type, dest, debut_mess, src, taille) :
             self.vers=str(vers)
-            self.type=str(type)
+            self.type=str(type) #types : 0 = Message, 1 = Demande de communication, 2 = Acceptation de communication,
+                                #3 = Accusé de réception de message ????? (pas sur si besoin)
+                                #4 = Demande de fin de communication, 5 = Acceptation de fin de communcation,
             self.dest=str(dest)
-            self.debut_mess=str(debut_mess)
+            self.debut_mess=str(debut_mess) #le numéro du caractère ou commence les datas de ce messages
             self.src=str(src)
-            self.taille=str(taille)
+            self.taille=str(taille) #la taille des datas de ce message
 
         def to_string_parse(self) :
             return  self.vers+self.type+self.dest+self.debut_mess+self.src+self.taille+self.data
@@ -58,13 +60,13 @@ class NetworkStack(object):
                 data = header[cur_debut_mess:cur_fin_mess]
                 header = header[0:12]
                 sous_packet = to_souspaquet_parse(header,data)
-                self.add_souspaquet(sous_paquet)
+                packet.add_souspaquet(sous_paquet)
                 string = string[13:cur_debut_mess] + string[cur_fin_mess:]#on enlève la partie qu'on vient d'ajouter à la liste
             # exploration du string puis appels de to_souspaquet_parse à la suite, puis append de tous les sous-paquets à la suite dans le tableau sous_paquets
-            if self.get_nb_paquets() == nb_paquets : #on verifie quon a bien ajouté tous les messages dans la liste
-                return 1
+            if packet.get_nb_paquets() == nb_paquets : #on verifie quon a bien ajouté tous les messages dans la liste
+                return packet
             else :
-                return 0
+                return -1
 
         def to_string_parse(self) :
             prev_data = 0
@@ -170,26 +172,39 @@ class NetworkStack(object):
     def layer2_incomingPDU(self, interface, pdu):
         # Coup d'oeil aux headers
         # 1) Parsing du paquet (à faire : paquet_parse)
-
+        paquet = to_paquet_parse(pdu)
+        self.paquet_list.append(paquet)
         # 1bis) Vérification getnbpaquet : si 0, on forward (layer2_outgoingPDU)
+        if paquet.get_nb_paquets() == 0 :
+            print("%s a reçu un paquet vide" % (self.__ownIdentifier))
+            self.layer2_outgoingPDU(interface,pdu)
+        else :
+            # 2) Boucle qui regarde la liste des headers : boolean à vrai si un des mess est pour nous
+            have_message = False
+            for i in range (0,paquet.get_nb_paquets()) :
+                if paquet.sous_paquets[i].header.dest == self.__ownIdentifier :
+                    have_message = True
 
-        # 2) Boucle qui regarde la liste des headers : boolean à vrai si un des mess est pour nous
-
-        # 3) Si on n'a pas de message pour nous on passe direct a 2_outgoing, sinon on passe a 3_in pour traiter le paquet plus en détail
-        
-        #print("%s Layer2: Received (%s) on Interface %d:  " % (self.__ownIdentifier, pdu, interface))
-        if interface == 0 : # same ring
-            # Forward in 50% of the cases
-            if random.randint(0,1):
-                self.layer2_outgoingPDU(interface,pdu)
-                print("%s Layer2_in: Received (%s) on Interface %d:  " % (self.__ownIdentifier, pdu, interface))
-                print("%s Layer2_in: tirage (%s) -> layer2_out\n" % (self.__ownIdentifier, pdu))
-            else:
-                self.layer3_incomingPDU(interface,pdu)
-                print("%s Layer2_in: Received (%s) on Interface %d:  " % (self.__ownIdentifier, pdu, interface))
-                print("%s Layer2_in: tirage (%s) -> layer3_in\n" % (self.__ownIdentifier, pdu))
-        else: # Another Ring, this is for routing, see later
-            pass
+            # 3) Si on n'a pas de message pour nous on passe direct a 2_outgoing, sinon on passe a 3_in pour traiter le paquet plus en détail
+            if have_message == True :
+                self.layer3_incomingPDU(interface, pdu)
+            else :
+                if have_message == False :
+                    self.layer2_outgoingPDU(interface, pdu)
+            
+            #print("%s Layer2: Received (%s) on Interface %d:  " % (self.__ownIdentifier, pdu, interface))
+######      if interface == 0 : # same ring
+                # Forward in 50% of the cases
+            #    if random.randint(0,1):
+            #        self.layer2_outgoingPDU(interface,pdu)
+            #        print("%s Layer2_in: Received (%s) on Interface %d:  " % (self.__ownIdentifier, pdu, interface))
+            #        print("%s Layer2_in: tirage (%s) -> layer2_out\n" % (self.__ownIdentifier, pdu))
+            #    else:
+            #        self.layer3_incomingPDU(interface,pdu)
+            #        print("%s Layer2_in: Received (%s) on Interface %d:  " % (self.__ownIdentifier, pdu, interface))
+            #        print("%s Layer2_in: tirage (%s) -> layer3_in\n" % (self.__ownIdentifier, pdu))
+######      else: # Another Ring, this is for routing, see later
+            #    pass
 
     def layer2_outgoingPDU(self, interface, pdu):
         # Envoi du paquet
