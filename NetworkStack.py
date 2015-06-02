@@ -48,12 +48,15 @@ class NetworkStack(object):
             sous_paquets.append(souspaquet)
 
         def get_nb_paquets(self) :
-            return self.sous_paquets[0].debut_mess/TAILLE_HEADER
+            if self.sous_paquets!=[]:
+                return self.sous_paquets[0].debut_mess/TAILLE_HEADER
+            else :
+                return 0
         
         def to_paquet_parse(string) :
             if string != "" :
-                packet=Paquet()
-                nb_paquets = int(header[4:7])/13
+                packet=NetworkStack.Paquet()
+                nb_paquets = int(string[4:7])/13
                 while string != "" :
                     header = string
                     cur_debut_mess = int(header[4:7])
@@ -67,22 +70,23 @@ class NetworkStack(object):
                 if packet.get_nb_paquets() == nb_paquets : #on verifie quon a bien ajouté tous les messages dans la liste
                     return packet
                 else :
-                    print("Problème to_paquet_parse")
-                    return -1
+                    print("Problème to_paquet_parse \n")
+                    return NetworkStack.Paquet()
             else :
-                return 0
+            
+                return NetworkStack.Paquet()
 
         def to_string_parse(self) :
             prev_data = 0
             return_string=""
             
-            for i in range (0,self.get_nb_packets()-1) :
+            for i in range (0,self.get_nb_paquets()-1) :
                 data = self.sous_packets[i].header.debut_mess
-                self.sous_packets[i].header.debut_mess = self.get_nb_packets() * TAILLE_HEADER + prev_data+1
+                self.sous_packets[i].header.debut_mess = self.get_nb_paquets() * TAILLE_HEADER + prev_data+1
                 prev_data = data
                 return_string = return_string + self.sous_packets[i].header.to_string_parse()
                 
-            for i in range (0,self.get_nb_packets()-1) :
+            for i in range (0,self.get_nb_paquets()-1) :
                 return_string = return_string + self.sous_packets[i].data #supposant que data est déja un string
                 
             # appelle to_string_header parse de tous les paquets, puis concatène tous les data pour créer un string (datagram)
@@ -102,7 +106,7 @@ class NetworkStack(object):
         self.header_list=[]
         self.data_list=[]
         self.sous_paquet_list=[]
-        self.paquet
+        self.paquet=NetworkStack.Paquet()
 
     def leaveNetwork(self):
         self.__physicalLayer.API_leave()
@@ -123,7 +127,7 @@ class NetworkStack(object):
 
     # Please change: This sends the first TOKEN to the ring
     def initiateToken(self):
-        self.__physicalLayer.API_sendData(0, "TOKEN")
+        self.__physicalLayer.API_sendData(0, NetworkStack.Paquet().to_string_parse())
 
     # Please adapt!
     # Take care: The parameters of incoming (data packets arriving at the computer) and outgoing (data packets leaving from the computer)
@@ -175,6 +179,8 @@ class NetworkStack(object):
     # Please adapt
     def layer3_outgoingPDU(self, destination, pdu):
         # Compilation du paquet sous forme de string
+        pdu=self.paquet.to_string_parse()
+        
         self.layer3_outputBlockingCondition.acquire()
         self.layer3_outputAvailable=True
         while self.layer3_numberOfDataPacketsEmpty<1:
@@ -188,11 +194,11 @@ class NetworkStack(object):
     def layer2_incomingPDU(self, interface, pdu):
         # Coup d'oeil aux headers
         # 1) Parsing du paquet (à faire : paquet_parse)
-        paquet = to_paquet_parse(pdu)
+        paquet = NetworkStack.Paquet.to_paquet_parse(pdu)
         self.paquet=paquet
         # 1bis) Vérification getnbpaquet : si 0, on forward (layer2_outgoingPDU)
         if paquet.get_nb_paquets() == 0 :
-            print("%s a reçu un paquet vide" % (self.__ownIdentifier))
+            print("%s a reçu un paquet vide\n" % (self.__ownIdentifier))
             self.layer2_outgoingPDU(interface,pdu)
         else :
             # 2) Boucle qui regarde la liste des headers : boolean à vrai si un des mess est pour nous

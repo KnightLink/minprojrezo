@@ -70,8 +70,8 @@ class Computer(object):
 
                 if thisCorrect:
                     correct=correct+1
-            print("\n%s === Application Status of Computer %s after %.1f seconds:" % (self.__ownIdentifier, self.__ownIdentifier,(time.clock()-self.__appStartedTime)))
-            print("%s === Received %d messages with %d correct (%d out of order, %d wrong destination, %d wrong application)\n" % (self.__ownIdentifier, totalNumber, correct, outOfOrder, wrongDestination, wrongApplicationPort))
+            #print("\n%s === Application Status of Computer %s after %.1f seconds:" % (self.__ownIdentifier, self.__ownIdentifier,(time.clock()-self.__appStartedTime)))
+            #print("%s === Received %d messages with %d correct (%d out of order, %d wrong destination, %d wrong application)\n" % (self.__ownIdentifier, totalNumber, correct, outOfOrder, wrongDestination, wrongApplicationPort))
             time.sleep(1)
 
     def appMessageSend(self, destinationIdentifier="B"):

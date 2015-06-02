@@ -7,7 +7,7 @@ import time
 if __name__ == '__main__':
     # We try to be the master first
     print("Initiating PhyMaster")
-    network=PhyNetwork(baseport=10000, numberOfNodesPerRing=2)
+    network=PhyNetwork(baseport=10000, numberOfNodesPerRing=3)
     print("Initiating PhyMaster done")
 
 
