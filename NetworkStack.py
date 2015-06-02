@@ -50,15 +50,36 @@ class NetworkStack(object):
         
         def to_paquet_parse(string) :
             packet=Paquet()
+            nb_paquets = int(header[4:7])/13
+            while string != "" :
+                header = string
+                cur_debut_mess = int(header[4:7])
+                cur_fin_data = cur_debut_mes + int(header[10:12]) #debut du mess + taille du mess
+                data = header[cur_debut_mess:cur_fin_mess]
+                header = header[0:12]
+                sous_packet = to_souspaquet_parse(header,data)
+                self.add_souspaquet(sous_paquet)
+                string = string[13:cur_debut_mess] + string[cur_fin_mess:]#on enlève la partie qu'on vient d'ajouter à la liste
             # exploration du string puis appels de to_souspaquet_parse à la suite, puis append de tous les sous-paquets à la suite dans le tableau sous_paquets
-            return 1
+            if self.get_nb_paquets() == nb_paquets : #on verifie quon a bien ajouté tous les messages dans la liste
+                return 1
+            else :
+                return 0
 
         def to_string_parse(self) :
+            prev_data = 0
+            return_string=""
+            for i in range (0,self.get_nb_packets()-1) :
+                data = self.sous_packets[i].header.debut_mess
+                self.sous_packets[i].header.debut_mess = self.get_nb_packets() * TAILLE_HEADER + prev_data+1
+                prev_data = data
+                return_string = return_string + self.sous_packets[i].header.to_string_parse()
+            for i in range (0,self.get_nb_packets()-1) :
+                return_string = return_string + self.sous_packets[i].data #supposant que data est déja un string
             # appelle to_string_header parse de tous les paquets, puis concatène tous les data pour créer un string (datagram)
             # ne pas oublier de mettre à jour les pointeurs vers data avant de concaténer
-            return ""
+            return return_string
             
-
 
     def __init__(self, masterHost='127.0.0.1', baseport=10000, ownIdentifier='x'):
         self.__applicationList=[]
@@ -68,10 +89,10 @@ class NetworkStack(object):
         self.layer3_numberOfDataPacketsEmpty=0
         self.layer3_outputBlockingCondition=threading.Condition()
         self.layer3_outputDoneCondition=threading.Condition()
-        # stockage des headers, souspaquets, list à traiter. Sont utilisés lors du traitement d'un paquet et sont vidées car c'est envoyé.
+        # stockage des headers, souspaquets, list à traiter. Sont utilisés lors du traitement d'un paquet et sont vidés car c'est envoyé.
         self.headerlist=[]
         self.souspaquetlist=[]
-        self.paquetlis[]
+        self.paquetlist=[]
 
     def leaveNetwork(self):
         self.__physicalLayer.API_leave()
