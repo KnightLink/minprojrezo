@@ -51,33 +51,40 @@ class NetworkStack(object):
             return self.sous_paquets[0].debut_mess/TAILLE_HEADER
         
         def to_paquet_parse(string) :
-            packet=Paquet()
-            nb_paquets = int(header[4:7])/13
-            while string != "" :
-                header = string
-                cur_debut_mess = int(header[4:7])
-                cur_fin_data = cur_debut_mes + int(header[10:12]) #debut du mess + taille du mess
-                data = header[cur_debut_mess:cur_fin_mess]
-                header = header[0:12]
-                sous_packet = to_souspaquet_parse(header,data)
-                packet.add_souspaquet(sous_paquet)
-                string = string[13:cur_debut_mess] + string[cur_fin_mess:]#on enlève la partie qu'on vient d'ajouter à la liste
-            # exploration du string puis appels de to_souspaquet_parse à la suite, puis append de tous les sous-paquets à la suite dans le tableau sous_paquets
-            if packet.get_nb_paquets() == nb_paquets : #on verifie quon a bien ajouté tous les messages dans la liste
-                return packet
+            if string != "" :
+                packet=Paquet()
+                nb_paquets = int(header[4:7])/13
+                while string != "" :
+                    header = string
+                    cur_debut_mess = int(header[4:7])
+                    cur_fin_data = cur_debut_mes + int(header[10:12]) #debut du mess + taille du mess
+                    data = header[cur_debut_mess:cur_fin_mess]
+                    header = header[0:12]
+                    sous_packet = to_souspaquet_parse(header,data)
+                    packet.add_souspaquet(sous_paquet)
+                    string = string[13:cur_debut_mess] + string[cur_fin_mess:]#on enlève la partie qu'on vient d'ajouter à la liste
+                # exploration du string puis appels de to_souspaquet_parse à la suite, puis append de tous les sous-paquets à la suite dans le tableau sous_paquets
+                if packet.get_nb_paquets() == nb_paquets : #on verifie quon a bien ajouté tous les messages dans la liste
+                    return packet
+                else :
+                    print("Problème to_paquet_parse")
+                    return -1
             else :
-                return -1
+                return 0
 
         def to_string_parse(self) :
             prev_data = 0
             return_string=""
+            
             for i in range (0,self.get_nb_packets()-1) :
                 data = self.sous_packets[i].header.debut_mess
                 self.sous_packets[i].header.debut_mess = self.get_nb_packets() * TAILLE_HEADER + prev_data+1
                 prev_data = data
                 return_string = return_string + self.sous_packets[i].header.to_string_parse()
+                
             for i in range (0,self.get_nb_packets()-1) :
                 return_string = return_string + self.sous_packets[i].data #supposant que data est déja un string
+                
             # appelle to_string_header parse de tous les paquets, puis concatène tous les data pour créer un string (datagram)
             # ne pas oublier de mettre à jour les pointeurs vers data avant de concaténer
             return return_string
@@ -92,9 +99,10 @@ class NetworkStack(object):
         self.layer3_outputBlockingCondition=threading.Condition()
         self.layer3_outputDoneCondition=threading.Condition()
         # stockage des headers, souspaquets, list à traiter. Sont utilisés lors du traitement d'un paquet et sont vidés car c'est envoyé.
-        self.headerlist=[]
-        self.souspaquetlist=[]
-        self.paquetlist=[]
+        self.header_list=[]
+        self.data_list=[]
+        self.sous_paquet_list=[]
+        self.paquet
 
     def leaveNetwork(self):
         self.__physicalLayer.API_leave()
@@ -122,8 +130,11 @@ class NetworkStack(object):
     # should generally agree with one layer difference (i.e. here we treat the applicationPort, an identifier that sais which application
     # is asked to handle the traffic
     def layer4_incomingPDU(self, source, pdu):
-        # traitement data des sous-paquets reçus
+        # traitement data des sous-paquets reçus #???
         # suppression des paquets lus / paquets dont nous sommes la destination
+        for elt in self.paquet.sous_paquets :
+            if elt.header.src == self.__ownIdentifier :
+                paquet.sous_paquets.pop(elt)
         
         print("%s Layer4_in: Received (%s) from %s " % (self.__ownIdentifier,pdu, source))
         self.application_layer_incomingPDU(source,10,pdu)
@@ -132,17 +143,22 @@ class NetworkStack(object):
     # Please adapt
     def layer4_outgoingPDU(self, destination, applicationPort, pdu):
         # Création du header et des données
+        for elt in self.sous_paquet_list :
+            self.header_list.append(elt.header)
+            self.data_list.append(elt.data)
         
         print("%s Layer4_out: Sending message (%s) to %s " % (self.__ownIdentifier, pdu, destination))
         self.layer3_outgoingPDU(destination, pdu)
 
     # Please adapt!
-    # The current situation is that in this layer, the network stack takes the decision to forcibly keep the packet because it thinkgs that it is destined to this computer
+    # The current situation is that in this layer, the network stack takes the decision to forcibly keep the packet because it thinks that it is destined to this computer
     # It also authorizes immediately that a new packet can be put onto the network.
     def layer3_incomingPDU(self, interface, pdu):
-        
-        # 1) On isole les paquets pour nous en créant des SousPaquet
-
+        # 1) On isole les paquets pour nous en ajoutant les SousPaquets a la liste
+        for i in range (0,self.paquet.get_nb_paquets()) :
+            if self.paquet.sous_paquets[i].header.dest == self.__ownIdentifier :
+                self.sous_paquet_list.append(self.paquet.sous_paquets[i])
+                
         print("%s Layer3_in: Received (%s) on interface %d: " % (self.__ownIdentifier, pdu, interface))
         # Say, we treat destination here
         # Maybe we can give away one packet if we received one?
@@ -173,7 +189,7 @@ class NetworkStack(object):
         # Coup d'oeil aux headers
         # 1) Parsing du paquet (à faire : paquet_parse)
         paquet = to_paquet_parse(pdu)
-        self.paquet_list.append(paquet)
+        self.paquet=paquet
         # 1bis) Vérification getnbpaquet : si 0, on forward (layer2_outgoingPDU)
         if paquet.get_nb_paquets() == 0 :
             print("%s a reçu un paquet vide" % (self.__ownIdentifier))
