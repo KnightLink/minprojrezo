@@ -49,14 +49,14 @@ class NetworkStack(object):
 
         def get_nb_paquets(self) :
             if self.sous_paquets!=[]:
-                return self.sous_paquets[0].debut_mess/TAILLE_HEADER
+                return int(int(self.sous_paquets[0].header.debut_mess)/NetworkStack.TAILLE_HEADER)
             else :
                 return 0
         
         def to_paquet_parse(string) :
             if string != "" :
                 packet=NetworkStack.Paquet()
-                nb_paquets = int(string[4:7])/13
+                nb_paquets = int(string[4:7])/NetworkStack.TAILLE_HEADER
                 while string != "" :
                     header = string
                     cur_debut_mess = int(header[4:7])
@@ -131,14 +131,15 @@ class NetworkStack(object):
 
     # Please adapt!
     # Take care: The parameters of incoming (data packets arriving at the computer) and outgoing (data packets leaving from the computer)
-    # should generally agree with one layer difference (i.e. here we treat the applicationPort, an identifier that sais which application
+    # should generally agree with one layer difference (i.e. here we treat the applicationPort, an identifier that says which application
     # is asked to handle the traffic
     def layer4_incomingPDU(self, source, pdu):
-        # traitement data des sous-paquets reçus #???
+        # traitement data des sous-paquets reçus
+        #???
         # suppression des paquets lus / paquets dont nous sommes la destination
         for elt in self.paquet.sous_paquets :
             if elt.header.src == self.__ownIdentifier :
-                paquet.sous_paquets.pop(elt)
+                slef.paquet.sous_paquets.pop(elt)
         
         print("%s Layer4_in: Received (%s) from %s " % (self.__ownIdentifier,pdu, source))
         self.application_layer_incomingPDU(source,10,pdu)
@@ -146,6 +147,11 @@ class NetworkStack(object):
 
     # Please adapt
     def layer4_outgoingPDU(self, destination, applicationPort, pdu):
+        #ajout du message mis en paramètre pdu
+        new_header=NetworkStack.Header(1, 0, destination, NetworkStack.TAILLE_HEADER+1, self.__ownIdentifier, len(pdu))
+##pb tailles !!!!   #string[0],string[1],string[2:3],string[4:7],string[8:9],string[10:12]
+        new_sous_packet = NetworkStack.SousPaquet(new_header, pdu)
+        self.sous_paquet_list.append(new_sous_packet)
         # Création du header et des données
         for elt in self.sous_paquet_list :
             self.header_list.append(elt.header)
@@ -179,6 +185,9 @@ class NetworkStack(object):
     # Please adapt
     def layer3_outgoingPDU(self, destination, pdu):
         # Compilation du paquet sous forme de string
+        self.paquet.sous_paquets=[]
+        for elt in self.sous_paquet_list :
+            self.paquet.sous_paquets.append(elt)
         pdu=self.paquet.to_string_parse()
         
         self.layer3_outputBlockingCondition.acquire()
